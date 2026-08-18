@@ -37,6 +37,7 @@
   --radius-sm: 12px;
 }
 
+/* PREVENT ALL TEXT SELECTION & HIGHLIGHTS */
 * { 
   margin: 0; 
   padding: 0; 
@@ -80,8 +81,8 @@ body {
   font-size: clamp(120px, 30vw, 500px);
   font-weight: 900;
   color: var(--pink-deep);
-  opacity: 0.15;
-  filter: blur(12px);
+  opacity: 0.25;
+  filter: blur(0px); /* UNBLURRED BY DEFAULT */
   text-align: center;
   line-height: 0.9;
   letter-spacing: -0.05em;
@@ -1728,6 +1729,7 @@ const timerMain = document.getElementById('timerMain');
 const timerSecs = document.getElementById('timerSecs');
 const bgTimerMain = document.getElementById('bgTimerMain');
 const bgTimerSecs = document.getElementById('bgTimerSecs');
+const bgClockWrap = document.getElementById('bgClockWrap');
 
 function pad(n, len = 2) {
   return String(n).padStart(len, '0');
@@ -1765,17 +1767,19 @@ function updateTimer() {
     void timerSecs.offsetWidth;
     timerSecs.classList.add('tick-anim');
     
-    // Overkill scale pop on background clock
-    gsap.fromTo(bgTimerSecs, { scale: 1.2, color: '#FFC93C' }, { scale: 1, color: '#F4A100', duration: 0.8, ease: 'elastic.out(1, 0.3)' });
+    // OVERKILL ANIMATION ON BG CLOCK WHILE IT'S SHOWN
+    if (bgClockWrap.classList.contains('show')) {
+      gsap.fromTo(bgTimerSecs, { scale: 2.5, color: '#FFC93C' }, { scale: 1, color: '#F4A100', duration: 0.8, ease: 'elastic.out(1, 0.3)' });
+      gsap.fromTo(bgClockWrap, { x: "-15px" }, { x: "0px", duration: 0.6, ease: "elastic.out(1, 0.3)" });
+    }
   }
 }
 
 updateTimer();
 setInterval(updateTimer, 1000);
 
-// ============ FLOATING CLOCK TOGGLE (AUTO-HIDE 5s) ============
+// ============ FLOATING CLOCK TOGGLE (UNBLURRED POP-OUT, BLUR OUT AFTER 5s) ============
 const clockToggle = document.getElementById('clockToggle');
-const bgClockWrap = document.getElementById('bgClockWrap');
 let clockHideTimer;
 
 clockToggle.addEventListener('click', () => {
@@ -1783,15 +1787,28 @@ clockToggle.addEventListener('click', () => {
   clockToggle.classList.add('active');
   
   showToast('11 years activated ⏳', '⏳');
-  gsap.fromTo(bgClockWrap, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 1, ease: 'elastic.out(1, 0.5)' });
   
-  // Auto hide after 5 seconds
+  // POPS OUT UNBLURRED WITH OVERKILL ELASTIC ANIMATION
+  gsap.fromTo(bgClockWrap, 
+    { scale: 0.3, opacity: 0, filter: 'blur(0px)' }, 
+    { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 1.5, ease: 'elastic.out(1, 0.4)' }
+  );
+  
+  // AUTO-HIDE AFTER 5 SECONDS -> HEAVILY BLURS OUT
   clearTimeout(clockHideTimer);
   clockHideTimer = setTimeout(() => {
-    gsap.to(bgClockWrap, { scale: 0.8, opacity: 0, duration: 0.5, ease: 'power2.in', onComplete: () => {
-      bgClockWrap.classList.remove('show');
-      clockToggle.classList.remove('active');
-    }});
+    gsap.to(bgClockWrap, { 
+      scale: 1.5, 
+      opacity: 0, 
+      filter: 'blur(50px)', 
+      duration: 1, 
+      ease: 'power2.in', 
+      onComplete: () => {
+        bgClockWrap.classList.remove('show');
+        clockToggle.classList.remove('active');
+        gsap.set(bgClockWrap, { filter: 'blur(0px)' }); // Reset for next click
+      }
+    });
   }, 5000);
 });
 
